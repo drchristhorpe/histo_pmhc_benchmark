@@ -1,0 +1,40 @@
+[project]
+name = "histo-pmhc-benchmark"
+version = "0.1.0"
+description = "Benchmark pMHC class I structure predictions against ground-truth structures."
+readme = "README.md"
+authors = [
+    { name = "Chris Thorpe", email = "33100149+drchristhorpe@users.noreply.github.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "biopython>=1.85",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "click>=8.1",
+    "rich>=13.9.0",
+    "histo-aligner",
+    "histo-pseudosequence",
+]
+
+[project.scripts]
+histo-pmhc-benchmark = "histo_pmhc_benchmark.cli:main"
+
+[project.optional-dependencies]
+# The two histo_tools this pipeline composes. Installed from GitHub unless
+# already present on the path (they ship as system-site packages in dev).
+tools = [
+    "histo-aligner @ git+https://github.com/drchristhorpe/histo_aligner",
+    "histo-pseudosequence @ git+https://github.com/drchristhorpe/histo_pseudosequence",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.28,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
