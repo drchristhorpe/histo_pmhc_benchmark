@@ -21,6 +21,8 @@ class Method:
     label: str          # display label used in all output tables
     slug: str           # filesystem-safe short id
     plddt_scale: float  # multiply b-factor by this to get pLDDT on 0-100
+    training_cutoff: str  # PDB training-data cutoff (ISO date); structures released
+    #                       on/after this were unseen at training time.
 
     def top_model_path(self, base: str, folder: str) -> str | None:
         """Absolute path to this method's top-ranked model for one complex,
@@ -43,12 +45,20 @@ class Method:
 
 # The five benchmarked methods. ESMFold PDBs carry pLDDT on a 0-1 scale in the
 # b-factor column; every other method uses 0-100, so ESMFold is scaled x100.
+#
+# training_cutoff = the PDB release-date boundary of each method's training data:
+#   AlphaFold3            2021-09-30  (Abramson et al. 2024)
+#   Boltz-2              2023-06-01  (Boltz-2 preprint)
+#   ESMFold2 / -fast     2021-09-30  (ESM training snapshot)
+#   HistoFold            2018-04-30  (built on AlphaFold2 — Jumper et al. 2021 —
+#                                     whose PDB training set ends 30 Apr 2018;
+#                                     NOT AlphaFold3's 2021 cutoff)
 METHODS: tuple[Method, ...] = (
-    Method("alphafold3", "AlphaFold3", "alphafold3", 1.0),
-    Method("boltz2", "Boltz-2", "boltz2", 1.0),
-    Method("esmfold2-2026-05", "ESMFold2", "esmfold2", 100.0),
-    Method("esmfold2-fast-2026-05", "ESMFold2-fast", "esmfold2_fast", 100.0),
-    Method("histofold", "HistoFold", "histofold", 1.0),
+    Method("alphafold3", "AlphaFold3", "alphafold3", 1.0, "2021-09-30"),
+    Method("boltz2", "Boltz-2", "boltz2", 1.0, "2023-06-01"),
+    Method("esmfold2-2026-05", "ESMFold2", "esmfold2", 100.0, "2021-09-30"),
+    Method("esmfold2-fast-2026-05", "ESMFold2-fast", "esmfold2_fast", 100.0, "2021-09-30"),
+    Method("histofold", "HistoFold", "histofold", 1.0, "2018-04-30"),
 )
 
 METHOD_ORDER: tuple[str, ...] = tuple(m.label for m in METHODS)

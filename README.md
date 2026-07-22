@@ -29,7 +29,13 @@ For each prediction, aligned into the common 1hhk frame:
    plus calibration.
 5. **Gap analysis** — per-method CSVs of ground-truth complexes not predicted, in
    the `pdb_code,locus,allele_slug,peptide_sequence,resolution` schema.
-6. **A 4-panel summary figure**.
+6. **Training-cutoff analysis** — split each method's predictions into structures
+   released before vs after its PDB training cutoff and compare accuracy and
+   confidence across the boundary (Mann-Whitney U). HistoFold uses the AlphaFold2
+   cutoff (2018-04-30), since it builds on AlphaFold2.
+7. **Figures** — a 4-panel accuracy summary; whole-structure pLDDT before/after
+   box plots; and per-method per-residue box plots (peptide + binding-site,
+   confidence + RMSD, binding-site axis labelled with canonical MHC residue numbers).
 
 ## Install
 
@@ -46,9 +52,10 @@ there. `--extra tools` installs them from GitHub.
 ## CLI usage
 
 ```
-histo-pmhc-benchmark run DATASET  [-o OUT] [--aligned-root DIR] [--no-align] [--no-figure] [--quiet]
-histo-pmhc-benchmark index DATASET
-histo-pmhc-benchmark gaps  DATASET [-o OUT]
+histo-pmhc-benchmark run    DATASET [-o OUT] [--aligned-root DIR] [--no-align] [--no-figure] [--no-cutoff] [--offline] [--quiet]
+histo-pmhc-benchmark index  DATASET
+histo-pmhc-benchmark gaps    DATASET [-o OUT]
+histo-pmhc-benchmark cutoff DATASET [-o OUT] [--offline]
 ```
 
 `DATASET` is a directory containing:
@@ -66,6 +73,8 @@ DATASET/
   `histo-pmhc-benchmark run DATASET -o results/ --aligned-root results/aligned --no-align`
 - **Quick coverage check**: `histo-pmhc-benchmark index DATASET`
 - **Just the missing-complex CSVs**: `histo-pmhc-benchmark gaps DATASET -o results/`
+- **Cutoff analysis on an existing run** (reads the scored `*_whole.csv` tables in
+  `OUT/`): `histo-pmhc-benchmark cutoff DATASET -o results/`
 
 Outputs (in `OUT/`): `pmhc_peptide_rmsd_{whole,per_residue,per_atom}.csv`,
 `pmhc_peptide_confidence_*.csv`, `pmhc_interface_rmsd_*.csv`,

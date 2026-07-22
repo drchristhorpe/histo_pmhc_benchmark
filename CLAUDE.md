@@ -19,9 +19,21 @@ positions). Ships as library + Click CLI + skill.
   re-superposition**. Do not add a superposition step.
 - `stages.py` — the independently-callable stages (align, pseudosequence,
   peptide RMSD/confidence, interface RMSD/confidence, gaps, calibration).
+- `cutoff.py` — training-cutoff analysis: release-date loading (local CSV +
+  RCSB/PDBe fallback), before/after classification, Mann-Whitney summaries, and
+  the canonical pseudosequence-position index for per-residue figures.
 - `pipeline.py` — `run_pipeline(...)` orchestrates all stages and writes outputs.
-- `figures.py` — the 4-panel summary figure.
-- `cli.py` — Click CLI (`run`, `index`, `gaps`).
+- `figures.py` — the 4-panel summary figure, the whole-structure cutoff box plots,
+  and the per-method per-residue cutoff box plots.
+- `cli.py` — Click CLI (`run`, `index`, `gaps`, `cutoff`).
+
+## Training cutoffs
+
+`Method.training_cutoff` holds each method's PDB cutoff. **HistoFold = 2018-04-30
+(AlphaFold2), NOT AlphaFold3's 2021-09-30** — it builds on AlphaFold2. A test
+enforces this. Per-residue interface figures aggregate by the canonical
+pseudosequence rank but label the x-axis with the real MHC residue numbers
+(`resnum` itself varies across structures, so it can't be the grouping key).
 
 ## Key invariants
 

@@ -1,6 +1,6 @@
 [project]
 name = "histo-pmhc-benchmark"
-version = "0.1.0"
+version = "0.2.0"
 description = "Benchmark pMHC class I structure predictions against ground-truth structures."
 readme = "README.md"
 authors = [

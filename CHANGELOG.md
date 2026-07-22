@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0
+
+Training-cutoff analysis.
+
+- New `cutoff` stage and CLI subcommand: split each method's predictions into
+  structures released before vs after that method's PDB training-data cutoff, and
+  compare accuracy (RMSD) and confidence (pLDDT) across the boundary with a
+  Mann-Whitney U test. Release dates come from the dataset's local metadata CSV
+  with an RCSB/PDBe fallback (`--offline` to disable).
+- `Method` gains a `training_cutoff` field. **HistoFold uses the AlphaFold2
+  cutoff (2018-04-30)** — it builds on AlphaFold2, not AlphaFold3.
+- New figures: `pmhc_confidence_cutoff_boxplots.png` (whole-structure pLDDT
+  box plots before/after) and one `pmhc_perres_cutoff_<method>.png` per method
+  with an after-cutoff set — per-residue box plots of peptide pLDDT + Cα deviation
+  and binding-site sidechain pLDDT + RMSD, the binding-site axis labelled with the
+  canonical NetMHCpan-4.1 MHC residue numbers.
+- `run` gains `--no-cutoff` and `--offline`; new `cutoff` subcommand runs the
+  analysis on already-scored tables.
+
 ## 0.1.0
 
 Initial release.

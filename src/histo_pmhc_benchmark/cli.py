@@ -34,10 +34,12 @@ def main() -> None:
 @click.option("--aligned-root", type=click.Path(file_okay=False, path_type=Path), default=None,
               help="Where aligned PDBs live/are written (default: <out-dir>/aligned).")
 @click.option("--no-align", is_flag=True, help="Reuse existing aligned PDBs (skip alignment).")
-@click.option("--no-figure", is_flag=True, help="Skip the summary figure.")
+@click.option("--no-figure", is_flag=True, help="Skip the summary + box-plot figures.")
+@click.option("--no-cutoff", is_flag=True, help="Skip the before/after training-cutoff analysis.")
+@click.option("--offline", is_flag=True, help="Don't fetch missing release dates from RCSB/PDBe.")
 @click.option("--quiet", is_flag=True, help="Suppress progress output.")
 def run(dataset: Path, out_dir: Path, aligned_root: Path | None,
-        no_align: bool, no_figure: bool, quiet: bool) -> None:
+        no_align: bool, no_figure: bool, no_cutoff: bool, offline: bool, quiet: bool) -> None:
     """Run the full pipeline on DATASET (a dir with predictions/, ground_truth/aligned/, metadata/)."""
     console = Console(quiet=quiet)
     console.print(f"[bold]pMHC benchmark[/bold] — dataset: {dataset}")
@@ -45,6 +47,7 @@ def run(dataset: Path, out_dir: Path, aligned_root: Path | None,
         base=str(dataset), out_dir=str(out_dir),
         aligned_root=str(aligned_root) if aligned_root else None,
         do_align=not no_align, do_figure=not no_figure,
+        do_cutoff=not no_cutoff, fetch_missing_dates=not offline,
         progress=None if quiet else _progress(console),
     )
     if not quiet:
@@ -84,6 +87,55 @@ def gaps(dataset: Path, out_dir: Path) -> None:
         p = out_dir / f"missing_{slug}.csv"
         df.to_csv(p, index=False)
         console.print(f"  {slug:14s} {len(df):4d} missing -> {p}")
+
+
+@main.command()
+@click.argument("dataset", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("-o", "--out-dir", type=click.Path(exists=True, file_okay=False, path_type=Path),
+              default="pmhc_benchmark_out", help="Dir holding the scored *_whole.csv tables (from `run`).")
+@click.option("--offline", is_flag=True, help="Don't fetch missing release dates from RCSB/PDBe.")
+def cutoff(dataset: Path, out_dir: Path, offline: bool) -> None:
+    """Before/after training-cutoff analysis on already-scored tables in OUT-DIR.
+
+    Reads the peptide/interface *_whole.csv tables a prior `run` wrote, classifies
+    each structure by its method's PDB cutoff, and writes the cutoff CSVs + box plots.
+    """
+    import pandas as pd
+    from histo_pmhc_benchmark import cutoff as cutoff_mod
+    from histo_pmhc_benchmark.figures import confidence_cutoff_boxplots
+
+    console = Console()
+    need = {"peptide_rmsd_whole": "pmhc_peptide_rmsd_whole.csv",
+            "interface_rmsd_whole": "pmhc_interface_rmsd_whole.csv",
+            "peptide_confidence_whole": "pmhc_peptide_confidence_whole.csv",
+            "interface_confidence_whole": "pmhc_interface_confidence_whole.csv"}
+    optional = {"peptide_confidence_per_residue": "pmhc_peptide_confidence_per_residue.csv",
+                "interface_confidence_per_position": "pmhc_interface_confidence_per_position.csv"}
+    tables = {}
+    for k, fn in {**need, **optional}.items():
+        p = out_dir / fn
+        if p.exists():
+            tables[k] = pd.read_csv(p)
+        elif k in need:
+            raise click.ClickException(f"missing required table {p} — run `histo-pmhc-benchmark run` first")
+
+    res = cutoff_mod.run_cutoff_analysis(str(dataset), tables, fetch_missing=not offline,
+                                         progress=lambda m: console.print(f"  [dim]·[/dim] {m}"))
+    res["classification"].to_csv(out_dir / "pmhc_cutoff_classification.csv", index=False)
+    res["accuracy_summary"].to_csv(out_dir / "pmhc_cutoff_accuracy_summary.csv", index=False)
+    res["confidence_summary"].to_csv(out_dir / "pmhc_cutoff_confidence_summary.csv", index=False)
+    confidence_cutoff_boxplots(res["peptide_confidence_classified"],
+                               res["interface_confidence_classified"],
+                               str(out_dir / "pmhc_confidence_cutoff_boxplots.png"))
+
+    t = Table(title="Confidence (pLDDT) before → after cutoff (median)")
+    for c in ("Metric", "Method", "n before", "n after", "before", "after", "MWU p"):
+        t.add_column(c)
+    for _, r in res["confidence_summary"].iterrows():
+        t.add_row(r["metric"], r["method"], str(r["n_before"]), str(r["n_after"]),
+                  str(r["median_before"]), str(r["median_after"]), str(r["mwu_p"]))
+    console.print(t)
+    console.print(f"[green]done[/green] — cutoff CSVs + box plots in {out_dir}")
 
 
 if __name__ == "__main__":
